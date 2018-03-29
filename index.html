@@ -1,0 +1,374 @@
+﻿<html>
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>fyz-计算机图形学作业</title>
+<link rel="stylesheet" href="style/jquery-ui.css">
+<link rel="stylesheet" href="style/style.css">
+<script type="text/javascript" src="js/Oak3D_v_0_5.js"></script>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/jquery-ui.js"></script>
+<script type="text/javascript" src="js/control.js"></script>
+<script type="text/javascript" src="js/fyz.js"></script>
+
+  <script>
+  //观察&&自转区
+  var boolRotF = 0;//控制自转的bool变量。为0时运动，为1时停止运动
+  var boolRotY = 0;//控制自转的bool变量。为0时运动，为1时停止运动
+  var boolRotZ = 0;//控制自转的bool变量。为0时运动，为1时停止运动
+  var boolRotA = 2;//控制旋转 为0时停止控制（受速度控制）  为1时受整体滑动条控制
+  //移动区&&运动区
+  var boolMove = 0;//boolMove=1时 字母的位置受移动区控制
+  var boolMoveA = 1;//为1时停止运动，为2时椭圆运动，3四边形运动
+  var boolMoveF = 1;//为1时停止运动
+  var boolMoveY = 1;//为1时停止运动
+  var boolMoveZ= 1;//为1时停止运动
+
+  //自转区
+    var fxRot = 0;
+    var fyRot = 0;
+    var fzRot = 0;
+    
+    var yxRot = 0;
+    var yyRot = 0;
+    var yzRot = 0;
+
+    var zxRot = 0;
+    var zyRot = 0;
+    var zzRot = 0;
+    //速率区
+    var fxSpeed =0;
+    var fySpeed = 0;
+    var fzSpeed = 0;
+
+    var yxSpeed = 0;
+    var yySpeed = 0;
+    var yzSpeed = 0;
+
+    var zxSpeed = 0;
+    var zySpeed = 0;
+    var zzSpeed = 0;
+
+    //平移区
+    var FxMove = 0.0;
+    var FyMove = 0.0;
+
+    var YxMove = 0.0;
+    var YyMove = 0.0;
+
+    var ZxMove = 0.0;
+    var ZyMove = 0.0;
+
+    //纹理区
+    var booltextureF = 1;
+    var booltextureY = 1;
+    var booltextureZ = 1;
+
+
+  </script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+
+    precision mediump float;
+
+
+    varying vec2 vTextureCoord;
+    //储存经过顶点着色器计算过的光照的红、绿、蓝的颜色值
+    varying vec3 vLightWeighting;
+
+    uniform float uAlpha;
+
+	uniform sampler2D uSampler;
+	//代表纹理
+    void main(void) {
+        vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        //调用texture2D，并根据坐标从纹理中获得相对应的颜色。
+        gl_FragColor = vec4(textureColor.rgb * vLightWeighting, textureColor.a * uAlpha);
+    }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;//位置
+    attribute vec3 aVertexNormal;//法向量
+    attribute vec2 aTextureCoord;//纹理
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat4 uNMatrix;
+
+    uniform vec3 uAmbientColor;
+
+    uniform vec3 uLightingDirection;//光照角度
+    uniform vec3 uDirectionalColor;//光照颜色
+
+    uniform bool uUseLighting;//开启||关闭光照
+
+    varying vec2 vTextureCoord;
+    varying vec3 vLightWeighting;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aTextureCoord;
+
+        if (!uUseLighting) {
+            vLightWeighting = vec3(1.0, 1.0, 1.0);
+        } else {
+            vec3 transformedNormal = (uNMatrix * vec4(aVertexNormal,1.0)).xyz;
+            float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
+            vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
+        }
+    }
+</script>
+
+
+<script type="text/javascript">
+
+    var gl;
+
+    function initGL(canvas) {
+        try {
+            gl = canvas.getContext("experimental-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("Could not initialise WebGL, sorry :-(");
+        }
+    }
+
+
+    function getShader(gl, id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+
+    var shaderProgram;
+
+    function initShaders() {
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+        gl.useProgram(shaderProgram);
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+        gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
+        shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+        shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.useLightingUniform = gl.getUniformLocation(shaderProgram, "uUseLighting");
+        shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
+        shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
+        shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
+        shaderProgram.alphaUniform = gl.getUniformLocation(shaderProgram, "uAlpha");
+    }
+    </script>
+</head>
+
+
+<body onload="webGLStart();"class="ui-widget-content">
+
+    <canvas id="fyzcanvas" style="border: none;" width="900" height="650"></canvas>
+
+    <table float="right" border="1";>
+  <tr>
+    <th style="width:40;">功能</th>
+    <th style="width:50;">整体</th>
+    <th style="width:50;">F</th>
+    <th style="width:50;">Y</th>
+    <th style="width:50;">Z</th>
+  </tr>
+  <tr>
+    <td>观察区<button id="defaultRot">默认</button></td>
+    <td>
+        <div id="sliderRotx"></div><div id="sliderRoty"></div><div id="sliderRotz"></div>
+    </td>
+    <td>
+    <div id="sliderRotxF"></div><div id="sliderRotyF"></div><div id="sliderRotzF"></div>
+    
+    
+    </td>
+    <td>
+    <div id="sliderRotxY"></div><div id="sliderRotyY"></div><div id="sliderRotzY"></div>
+    </td>
+    <td><div id="sliderRotxZ"></div><div id="sliderRotyZ"></div><div id="sliderRotzZ"></div></td>
+    <tr>
+        <td>自转区<button id="defaultSpeed">默认</button></td>
+        <td><div id="sliderSpeedx"></div><div id="sliderSpeedy"></div><div id="sliderSpeedz"></div></td>
+        <td><div id="sliderSpeedxF"></div><div id="sliderSpeedyF"></div><div id="sliderSpeedzF"></div></td>
+        <td><div id="sliderSpeedxY"></div><div id="sliderSpeedyY"></div><div id="sliderSpeedzY"></div></td> 
+        <td><div id="sliderSpeedxZ"></div><div id="sliderSpeedyZ"></div><div id="sliderSpeedzZ"></div></td>
+
+
+
+    </tr>
+    <tr>
+        <td>缩放区<button id="defaultZoom">默认</button></td>
+        <td><div id="sliderZoom"></div></td>
+        <td><div id="sliderZoomF"></div></td>
+        <td><div id="sliderZoomY"></div></td>
+        <td><div id="sliderZoomZ"></div></td>
+    </tr>
+    <tr>
+        <td>移动区<button id="defaultMove">默认</button></td>
+        <td><div id="sliderMovex"></div>
+            <div id="sliderMovey"></div></td>
+        <td>
+            <div id="sliderMovexF"></div>
+            <div id="sliderMoveyF"></div>
+        </td>
+        <td>
+            <div id="sliderMovexY"></div>
+            <div id="sliderMoveyY"></div>
+        </td>
+        <td>
+            <div id="sliderMovexZ"></div>
+            <div id="sliderMoveyZ"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>运动区<button id="defalutMove">重置</button></td>
+        <td><select >
+  <option value ="1" id="selectMoveA1">无运动</option>
+  <option value="4" id="selectMoveA2"
+ >椭圆周</option>
+  <option value="5" id="selectMoveA3">四边形</option>
+</select></td>
+        <td><select >
+  <option value ="1" id="selectMoveF1">无运动</option>
+  <option value ="2" id="selectMoveF2"
+>X轴直线</option>
+  <option value="3" id="selectMoveF3"
+>Y轴直线</option>
+  
+</select></td>
+        <td><select >
+  <option value ="1" id="selectMoveY1">无运动</option>
+  <option value="4" id="selectMoveY2"
+直>抛物线</option>
+  <option value="5" id="selectMoveY3">自由落体</option>
+</select></td>
+        <td><select >
+  <option value ="1" id="selectMoveZ1">无运动</option>
+  
+  <option value="6" id="selectMoveZ2"
+直>圆周</option>
+  <option value="7" id="selectMoveZ3"
+直>空间穿梭</option>
+</select></td>
+    </tr>
+    <tr>
+        <td>纹理区</td>
+        <td> </td>
+        <td><select >
+  <option value ="1" id="selectTexF1">默认</option>
+  
+  <option value="2" id="selectTexF2"
+直>海贼</option>
+  <option value="3" id="selectTexF3"
+直>乔巴</option>
+</select></td>
+        <td><select >
+  <option value ="1" id="selectTexY1">默认</option>
+  
+  <option value="6" id="selectTexY2"
+直>金属</option>
+  <option value="7" id="selectTexY3"
+直>黄金</option>
+</select></td>
+        <td><select >
+  <option value ="1" id="selectTexZ1">默认</option>
+  
+  <option value="6" id="selectTexZ2"
+直>冰点</option>
+  <option value="7" id="selectTexZ3"
+直>渐变</option>
+</select></td>
+    </tr>
+    
+	<tr>
+        <td colspan="5">光的控制</td>
+        
+    </tr>
+    <tr>
+        <td colspan="5"><input type="checkbox" id="blending"  checked /> 开启混合<input type="checkbox" id="lighting" checked /> 开启光照 <br>混合度 <input type="text" id="alpha" value="0.8" /></td>
+        
+    </tr>
+    <tr>
+        <td>光照颜色区<button id="defalutLightColor">默认</button></td>
+      
+        <td colspan="4"><div id="red"></div>
+<div id="green"></div>
+<div id="blue"></div>
+ 
+<div id="swatch" class="ui-widget-content ui-corner-all"></div></td>
+        
+    </tr>
+    <tr>
+        <td>光照方向区<button id="defalutlightDirection">默认</button></td>
+        
+        <td colspan="4"><div id="lightDirectionX"></div><div id="lightDirectionY"></div><div id="lightDirectionZ"></div></td>
+       
+    </tr>
+    <tr>
+        <td>环境光颜色区<button id="defalutEnviColor">默认</button></td>
+        
+        <td colspan="4"><div id="red2"></div>
+<div id="green2"></div>
+<div id="blue2"></div>
+ 
+<div id="swatch2" class="ui-widget-content ui-corner-all"></div></td>
+    </tr>
+    </div>
+
+</table>
+
+
+
+
+</body>
+
+</html>

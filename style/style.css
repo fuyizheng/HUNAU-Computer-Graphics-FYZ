@@ -1,0 +1,108 @@
+#eq span {
+    height:120px; float:left; margin:15px;
+  }
+ 
+  #red, #green, #blue,#red2, #green2, #blue2 {
+    float: left;
+    clear: left;
+    width: 100px;
+    margin: 5px;
+  }
+  #swatch,#swatch2 {
+    width: 80px;
+    height: 80px;
+    margin-top: 5px;
+    margin-left: 150px;
+    background-image: none;
+  }
+  #red .ui-slider-range { background: #ef2929; }
+  #red .ui-slider-handle { border-color: #ef2929; }
+  #green .ui-slider-range { background: #8ae234; }
+  #green .ui-slider-handle { border-color: #8ae234; }
+  #blue .ui-slider-range { background: #729fcf; }
+  #blue .ui-slider-handle { border-color: #729fcf; }
+
+  #red2 .ui-slider-range { background: #ef2929; }
+  #red2 .ui-slider-handle { border-color: #ef2929; }
+  #green2 .ui-slider-range { background: #8ae234; }
+  #green2 .ui-slider-handle { border-color: #8ae234; }
+  #blue2 .ui-slider-range { background: #729fcf; }
+  #blue2 .ui-slider-handle { border-color: #729fcf; }
+
+   #sliderRotxF, #sliderRotyF, #sliderRotzF,#sliderRotxY, #sliderRotyY, #sliderRotzY,#sliderRotxZ, #sliderRotyZ, #sliderRotzZ {
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+  #sliderRotx, #sliderRoty, #sliderRotz{
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+
+     #sliderSpeedxF,#sliderSpeedyF,#sliderSpeedzF,#sliderSpeedxY,#sliderSpeedyY,#sliderSpeedzY,#sliderSpeedxZ,#sliderSpeedyZ,#sliderSpeedzZ {
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+       #sliderSpeedx,#sliderSpeedy,#sliderSpeedz{
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+  #SliderZoom{
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+    #SliderZoomF,#SliderZoomY,#SliderZoomZ{
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+
+  #sliderMovexF,#sliderMoveyF,#sliderMovexY,#sliderMoveyY,#sliderMovexZ,#sliderMoveyZ{
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+  #sliderMovex,#sliderMovey{
+    float: left;
+    clear: left;
+    width: 50px;
+    margin: 2px;
+  }
+  #lightDirectionX,#lightDirectionY,#lightDirectionZ{
+    float: left;
+    clear: left;
+    width: 250px;
+    margin: 2px;
+  }
+  #alpha{
+    float: left;
+    clear: left;
+    width: 250px;
+    margin: 2px;
+  }
+  .click { background: #ef2929; }
+   table {
+                /*为表格设置合并边框模型*/
+                
+               /*列宽由表格宽度和列宽度设定*/
+                 table-layout: fixed;
+float:right;
+border:1; 
+width:340; 
+height:200; 
+align:center;
+             }
+th{
+  width: 40px;
+}
